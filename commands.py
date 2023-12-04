@@ -28,6 +28,9 @@ class IfCommand(Command):
     def eval_complexity(self, functions: List["BaseFunc"]):
         return IfExpr(self.condition, self.true.eval_complexity(functions), self.false.eval_complexity(functions))
 
+    def __repr__(self):
+        return f"if({self.condition}) then {self.true} else {self.false}"
+
 
 @dataclass
 class FunctionCallCommand(Command):
@@ -51,6 +54,9 @@ class FunctionCallCommand(Command):
             name: value for name, value in zip(func.input_names, self.args)
         })
 
+    def __repr__(self):
+        return f"{self.func_name}({','.join([f'{x}' for x in self.args])})"
+
 
 @dataclass
 class BlockCommand(Command):
@@ -63,6 +69,9 @@ class BlockCommand(Command):
     def eval_complexity(self, functions: List["BaseFunc"]):
         return add(self.first.eval_complexity(functions), self.second.eval_complexity(functions))
 
+    def __repr__(self):
+        return f"{self.first}; {self.second}"
+
 
 @dataclass
 class PassCommand(Command):
@@ -71,6 +80,9 @@ class PassCommand(Command):
 
     def eval_complexity(self, functions: List["BaseFunc"]):
         return ConstantExpr(0)
+
+    def __repr__(self):
+        return 'pass'
 
 
 def make_block(commands):

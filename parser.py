@@ -19,16 +19,16 @@ def parse_ast(node):
         funcs = []
         for child in node.body:
             if not isinstance(child, ast.FunctionDef):
-                raise Exception("expected the code consist of the definition of some functions")
+                raise Exception("expected the code to consist of the definition of some functions")
             funcs.append(parse_ast(child))
         return Program(funcs)
 
     elif isinstance(node, ast.FunctionDef):
-        return BaseFunc(
-            name=node.name,
-            input_names=parse_ast(node.args),
-            body=make_block(parse_ast(node.body))
-        )
+        name = node.name
+        input_names = parse_ast(node.args)
+        body = make_block(parse_ast(node.body))
+        T = parse_time_complexity_annotation(name, node.returns)
+        return BaseFunc(name=name, input_names=input_names, body=body, T=T)
 
     elif isinstance(node, ast.If):
         return IfCommand(
@@ -87,6 +87,34 @@ def parse_ast(node):
         return [parse_ast(item) for item in node]
 
     raise Exception(f"{type(node)} not supported")
+
+
+def parse_time_complexity_annotation(name, returns):
+    T = ConstantExpr(1)
+    if returns is None:
+        return T
+    if isinstance(returns, ast.Constant):
+        complexity_string = returns.value
+        try:
+            tree_body = ast.parse(complexity_string).body
+            if len(tree_body) != 1:
+                print(f"{complexity_string} cannot be considered as a time complexity expression")
+                return T
+            T = parse_ast(ast.parse(complexity_string).body[0])
+            if not isinstance(T, Expr):
+                print(f"parsed annotation {T} is not a valid time complexity and will be ignored")
+                return T
+            else:
+                return T
+        except Exception as e:
+            print(f"could not parse annotation {complexity_string} as time complexity")
+            print("error:", e)
+            return T
+    else:
+        print(f"function {name} is annotated with some type but in order for annotation to be considered as "
+              f"time complexity, it should be the string of the time complexity expression")
+        return T
+    return T
 
 
 def check_expr(expr):

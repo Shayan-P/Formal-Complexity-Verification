@@ -1,3 +1,6 @@
+from parser import parse_code
+
+code_str = """
 def loop1(n) -> "n":
     if n <= 0:
         pass
@@ -19,3 +22,6 @@ def loop3(n, m, w) -> "n * m * w":
     else:
         loop3(n-1, m, w)
         loop2(m, w)
+"""
+
+print(parse_code(code_str))
