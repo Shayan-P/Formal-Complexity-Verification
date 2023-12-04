@@ -2,3 +2,4 @@ tmp
 note
 .idea
 .vscode
+__pycache__
