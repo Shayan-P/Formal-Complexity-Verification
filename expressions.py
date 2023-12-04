@@ -31,6 +31,9 @@ class VariableExpr(Expr):
     def substitute_evaluate(self, subs: Dict[str, "Expr"]) -> "Expr":
         return subs.get(self.name, self)
 
+    def __repr__(self):
+        return f"{self.name}"
+
 
 @dataclass
 class ConstantExpr(Expr):
@@ -48,6 +51,9 @@ class ConstantExpr(Expr):
     def substitute_evaluate(self, subs: Dict[str, "Expr"]) -> "Expr":
         return self
 
+    def __repr__(self):
+        return f"{self.value}"
+
 
 @dataclass
 class Op:
@@ -55,6 +61,9 @@ class Op:
 
     def cvc5_kind(self):
         return getattr(Kind, self.name.upper())
+
+    def __repr__(self):
+        return f"{self.name.upper()}"
 
 
 @dataclass
@@ -71,6 +80,9 @@ class UnOpExpr(Expr):
 
     def substitute_evaluate(self, subs: Dict[str, "Expr"]) -> "Expr":
         return UnOpExpr(self.op, self.operand.substitute_evaluate(subs))
+
+    def __repr__(self):
+        return f"({self.op} {self.operand})"
 
 
 @dataclass
@@ -92,13 +104,50 @@ class BinOpExpr(Expr):
                          self.left.substitute_evaluate(subs),
                          self.right.substitute_evaluate(subs))
 
+    def __repr__(self):
+        if self.op.cvc5_kind() == Kind.ADD:
+            return f"({self.left}+{self.right})"
+        if self.op.cvc5_kind() == Kind.SUB:
+            return f"({self.left}-{self.right})"
+        if self.op.cvc5_kind() == Kind.MULT:
+            return f"({self.left}*{self.right})"
+        if self.op.cvc5_kind() == Kind.INTS_MODULUS:
+            return f"({self.left}%{self.right})"
+        if self.op.cvc5_kind() == Kind.LEQ:
+            return f"({self.left}<={self.right})"
+        if self.op.cvc5_kind() == Kind.LT:
+            return f"({self.left}<{self.right})"
+        if self.op.cvc5_kind() == Kind.GEQ:
+            return f"({self.left}>={self.right})"
+        if self.op.cvc5_kind() == Kind.GT:
+            return f"({self.left}>{self.right})"
+        if self.op.cvc5_kind() == Kind.EQUAL:
+            return f"({self.left}=={self.right})"
+        return f"({self.op} {self.left} {self.right})"
 
-def ite(condition, true_exp, false_exp):
-    return BinOpExpr(
-        Op("or"),
-        BinOpExpr(Op("and"), condition, true_exp),
-        BinOpExpr(Op("and"), UnOpExpr(Op("not"), condition), false_exp)
-    )
+
+@dataclass
+class IfExpr(Expr):
+    condition: Expr
+    true: Expr
+    false: Expr
+
+    def to_cvc5(self, slv, variables):
+        return slv.mkTerm(Kind.ITE,
+                          self.condition.to_cvc5(slv, variables),
+                          self.true.to_cvc5(slv, variables),
+                          self.false.to_cvc5(slv, variables))
+
+    def variables(self):
+        return self.condition.variables() | self.true.variables() | self.false.variables()
+
+    def substitute_evaluate(self, subs: Dict[str, "Expr"]) -> "Expr":
+        return IfExpr(self.condition.substitute_evaluate(subs),
+                      self.true.substitute_evaluate(subs),
+                      self.false.substitute_evaluate(subs))
+
+    def __repr__(self):
+        return f"(if {self.condition} then {self.true} else {self.false})"
 
 
 def add(a, b):
@@ -115,3 +164,11 @@ def sub(a, b):
 
 def leq(a, b):
     return BinOpExpr(Op("leq"), a, b)
+
+
+def forall_cvc5(slv, variables, quant_var_names, expression: Expr):
+    quant_var_list = slv.mkTerm(Kind.VARIABLE_LIST,
+                                *[variables[name] for name in quant_var_names])
+    return slv.mkTerm(Kind.FORALL,
+                      quant_var_list,
+                      expression.to_cvc5(slv, variables))
