@@ -1,3 +1,4 @@
+import dataclasses
 from abc import abstractmethod
 
 import cvc5
@@ -7,14 +8,20 @@ from commands import BlockCommand, Command
 from typing import List
 from cvc5 import Solver, Kind
 from functools import reduce
-
+from dataclasses import dataclass
 
 """
     essentially finding time complexity is finding the fix point of eval_complexity in all BaseFuncs
 """
 
 
+@dataclass
 class BaseFunc:
+    name: str
+    input_names: List[str]
+    body: Command
+    T: Expr
+
     def __init__(self, name: str, input_names, body: Command, T=ConstantExpr(1)):
         self.name = name
         self.body = body
@@ -26,7 +33,7 @@ class BaseFunc:
                 raise Exception(f"used variable {variable} in function {self.name} "
                                 f"which is not among the inputs: {self.input_names}")
 
-    def set_T(self, T:Expr):
+    def set_T(self, T: Expr):
         # todo how to make sure that initially variables belong to the input?
         self.T = T
         # for variable in T.variables():
@@ -42,7 +49,10 @@ class BaseFunc:
         return self.body.eval_complexity(functions)
 
 
+@dataclass
 class Program:
+    funcs: List[BaseFunc]
+
     def __init__(self, funcs: List[BaseFunc]):
         self.funcs = funcs
 
@@ -68,7 +78,8 @@ class Program:
             expression = leq(exp_T, T)
             # todo this is hacky. how to write this correctly?
             expression = reduce(lambda a, b: BinOpExpr(Op("or"), a, b),
-                                [BinOpExpr(Op("leq"), VariableExpr(name), ConstantExpr(0)) for name in func.input_names],
+                                [BinOpExpr(Op("leq"), VariableExpr(name), ConstantExpr(0)) for name in
+                                 func.input_names],
                                 expression)
             formula = forall_cvc5(
                 slv, variables,
@@ -83,4 +94,3 @@ class Program:
             return True
         else:
             return False
-

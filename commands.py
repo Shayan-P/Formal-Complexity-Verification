@@ -3,6 +3,7 @@ from typing import Any, Dict, List, FrozenSet, Union
 from dataclasses import dataclass
 from cvc5 import Kind
 from expressions import Expr, IfExpr, add, ConstantExpr
+from functools import reduce
 
 
 class Command(ABC):
@@ -70,3 +71,9 @@ class PassCommand(Command):
 
     def eval_complexity(self, functions: List["BaseFunc"]):
         return ConstantExpr(0)
+
+
+def make_block(commands):
+    if len(commands) == 0:
+        return PassCommand()
+    return reduce(lambda a, b: BlockCommand(a, b), commands)
