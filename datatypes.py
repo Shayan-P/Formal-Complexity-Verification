@@ -69,9 +69,13 @@ class Program:
         constant_cs = []
         # todo this is hacky. remove this later
         for name in list(variables.keys()):
-            if name.startswith("c0__") or name.startswith("c1__"):
+            if name.startswith("c1__"):
                 variables[name] = slv.mkConst(intSort, name)
                 slv.assertFormula(BinOpExpr(Op("geq"), VariableExpr(name), ConstantExpr(0)).to_cvc5(slv, variables))
+                constant_cs.append(variables[name])
+            if name.startswith("c0__"):
+                variables[name] = slv.mkConst(intSort, name)
+                slv.assertFormula(BinOpExpr(Op("geq"), VariableExpr(name), ConstantExpr(1)).to_cvc5(slv, variables))
                 constant_cs.append(variables[name])
 
         for exp_T, T, func in zip(exp_funcs_T, funcs_T, self.funcs):
