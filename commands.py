@@ -50,9 +50,10 @@ class FunctionCallCommand(Command):
         if len(funcs) > 1:
             raise Exception(f"multiple functions named {self.func_name} it is ambiguous")
         func = funcs[0]
-        return func.T.substitute_evaluate({
-            name: value for name, value in zip(func.input_names, self.args)
-        })
+        return add(
+            func.T.substitute_evaluate({name: value for name, value in zip(func.input_names, self.args)}),
+            ConstantExpr(1)
+        )
 
     def __repr__(self):
         return f"{self.func_name}({','.join([f'{x}' for x in self.args])})"
